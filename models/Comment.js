@@ -1,4 +1,5 @@
 const mongoose =require('mongoose')
+const Schema = mongoose.Schema
 
 const CommentSchema = new mongoose.Schema({
     text: { type: String, required: true, minlength: 5 },

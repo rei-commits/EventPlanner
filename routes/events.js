@@ -1,78 +1,65 @@
 const express = require('express')
-const Event = require('../models/Events')
 const router = express.Router()
+const Event = require('../models/Event')
 
 // @route GET api/events
 // @desc  get all events
 router.get('/', async (req, res) => {
     try {
-        const events = await Event.find().populate('user').populate('attendees')
+        const events = await Event.find().populate('createdBy').populate('comments')
         res.json(events)
     } catch (err) {
-        res.status(500).send('Server Error')
+        res.status(500).json({ message: err.message })
     }
 })
 
 //@route POST /api/events
 //@desc  Create an event
 router.post('/', async (req, res) => {
-    const { title, description, date, user } = req.body
+    const event = new Event({
+        title: req.body.title,
+        description: req.body.description,
+        date: req.body.date,
+        createdBy: req.body.createdBy
+    })
 
     try {
-        let event = new Event({
-            title,
-            description,
-            date,
-            user,
-        })
-
-        await event.save()
-        res.json(event)
+        const newEvent = await event.save()
+        res.status(201).json(newEvent)
     } catch (err) {
-        res.status(500).send('Server Error')
+        res.status(400).json({ message: err.message })
     }
 })
 
 // @route   PATCH /api/events/:id
 // @desc    Update an event
 router.patch('/:id', async (req, res) => {
-    const { title, description, date, user, attendees } = req.body;
-
     try {
-        let event = await Event.findById(req.params.id);
+        const event = await Event.findById(req.params.id)
+        if (!event) return res.status(404).json({ message: 'Event not found' })
 
-        if (event) {
-            event.title = title || event.title;
-            event.description = description || event.description;
-            event.date = date || event.date;
-            event.user = user || event.user;
-            event.attendees = attendees || event.attendees;
+        if (req.body.title != null) event.title = req.body.title
+        if (req.body.description != null) event.description = req.body.description
+        if (req.body.date != null) event.date = req.body.date
 
-            await event.save();
-            res.json(event);
-        } else {
-            res.status(404).send('Event not found');
-        }
+        const updatedEvent = await event.save()
+        res.json(updatedEvent)
     } catch (err) {
-        res.status(500).send('Server Error');
+        res.status(400).json({ message: err.message })
     }
-});
+})
 
 // @route   DELETE /api/events/:id
 // @desc    Delete an event
 router.delete('/:id', async (req, res) => {
     try {
-        let event = await Event.findById(req.params.id);
-
-        if (event) {
-            await event.remove();
-            res.json({ msg: 'Event removed' });
-        } else {
-            res.status(404).send('Event not found');
-        }
+        let event = await Event.findById(req.params.id)
+        if (!event) return res.status(404).json({ message: 'Event not found' })
+        await event.remove()
+        res.json({ msg: 'Event removed' })
     } catch (err) {
-        res.status(500).send('Server Error');
+        res.status(500).send('Server Error')
     }
-});
+})
 
-module.exports = router;
+module.exports = router
